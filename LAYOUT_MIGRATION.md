@@ -83,21 +83,15 @@ ist das hier vor allem für Neuaufbauten gedacht.
 
 ---
 
-## Animation (optional)
+## Animation
 
-* `animateChanges` am Container → Positions-/Größenwechsel der Kinder werden per
-  PrimeTween weich interpoliert (`animationDuration`, `animationEase`). Nur im Play-Mode.
-* `LayoutTweenExtensions`: `element.AnimateWidth(target, dur)`, `AnimateHeight(...)`,
-  `container.AnimatePadding(...)`, `container.AnimateGap(...)` für gezielte Übergänge.
-* `IAnimatableLayout` — Interface, falls eigene Components denselben Mechanismus nutzen wollen.
+Entfernt. Das Package hatte einen optionalen PrimeTween-Animations-Layer
+(`animateChanges` am Container, `LayoutTweenExtensions`, `IAnimatableLayout`).
+Der wurde ausgebaut, damit das Package **keine** PrimeTween-Abhängigkeit mehr hat.
 
-### PauseManager
-
-Die animierten Übergänge laufen über PrimeTween. Wie im restlichen Projekt gilt: das
-globale Pausieren von PrimeTween (`Tween.PauseAll` bzw. der zentrale PrimeTween-Pause-Hook)
-muss den `PauseManager` berücksichtigen — der Layout-Container selbst hat bewusst keine
-harte Abhängigkeit auf `Sperlich.PauseManager` (Package-Kapselung). Beim Einbauen in eine
-pausierbare Szene prüfen, dass der bestehende PrimeTween-Pause-Pfad greift.
+Layout-Änderungen snappen jetzt sofort. Weiche Übergänge macht der Aufrufer selbst:
+`Padding` / `Gap` am Container (oder `Width` / `Height` am `FlexElement`) von aussen
+tweenen und `RequestRebuild()` aufrufen.
 
 ---
 

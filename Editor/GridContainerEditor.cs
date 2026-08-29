@@ -33,9 +33,6 @@ namespace Sperlich.UISystem.Editor {
 			SerializedProperty alignItems = serializedObject.FindProperty("alignItems");
 			SerializedProperty gap = serializedObject.FindProperty("gap");
 			SerializedProperty padding = serializedObject.FindProperty("padding");
-			SerializedProperty animate = serializedObject.FindProperty("animateChanges");
-			SerializedProperty animDuration = serializedObject.FindProperty("animationDuration");
-			SerializedProperty animEase = serializedObject.FindProperty("animationEase");
 
 			var header = new VisualElement {
 				style = {
@@ -113,23 +110,6 @@ namespace Sperlich.UISystem.Editor {
 			alignBox.Add(alignHeader);
 			alignBox.Add(alignBody);
 			root.Add(alignBox);
-			root.Add(SperlichEditorWidgets.Spacer(6));
-
-			var animBox = SperlichEditorWidgets.CreateBox(4, SperlichEditorTheme.BorderSubtle);
-			var (animHeader, animBody, _) = SperlichEditorWidgets.CreateChevronSection("Animation", false, SperlichEditorTheme.BgDark);
-			animBody.style.paddingLeft = 6;
-			animBody.style.paddingRight = 6;
-			var animFields = new VisualElement();
-			animFields.Add(new PropertyField(animDuration, "Duration"));
-			animFields.Add(new PropertyField(animEase, "Ease"));
-			animBody.Add(new PropertyField(animate, "Animate changes"));
-			animBody.Add(animFields);
-			void RefreshAnim() => animFields.style.display = animate.boolValue ? DisplayStyle.Flex : DisplayStyle.None;
-			RefreshAnim();
-			root.TrackPropertyValue(animate, _ => RefreshAnim());
-			animBox.Add(animHeader);
-			animBox.Add(animBody);
-			root.Add(animBox);
 
 			return root;
 		}

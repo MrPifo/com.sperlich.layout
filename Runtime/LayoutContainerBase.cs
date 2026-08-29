@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using PrimeTween;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -9,22 +8,14 @@ namespace Sperlich.UISystem {
 	/// <summary>
 	/// Gemeinsame Basis für <see cref="FlexContainer"/> und <see cref="GridContainer"/>: Kind-Erfassung,
 	/// Dirty-Marking über Unitys <see cref="LayoutRebuilder"/>, das Schreiben von Kind-Position/-Größe
-	/// (optional PrimeTween-animiert) und die "Auto-Content-Size"-Anbindung über <see cref="ILayoutElement"/>.
+	/// und die "Auto-Content-Size"-Anbindung über <see cref="ILayoutElement"/>.
 	/// Erbt bewusst NICHT von Unitys LayoutGroup-Komponenten, sondern implementiert nur deren generische Interfaces.
 	/// </summary>
-	public abstract class LayoutContainerBase : UIBehaviour, ILayoutGroup, ILayoutElement, IAnimatableLayout {
+	public abstract class LayoutContainerBase : UIBehaviour, ILayoutGroup, ILayoutElement {
 
 		[SerializeField] protected RectOffset padding = new RectOffset();
 		[SerializeField, Tooltip("Abstand zwischen den Kindern. X = horizontaler Spalt, Y = vertikaler Spalt.")]
 		protected Vector2 gap = Vector2.zero;
-		[SerializeField, Tooltip("Wenn aktiv, werden Positions-/Größenänderungen der Kinder weich interpoliert statt zu snappen (nur im Play-Mode).")]
-		protected bool animateChanges = false;
-		[SerializeField, Min(0.01f)] protected float animationDuration = 0.18f;
-		[SerializeField] protected Ease animationEase = Ease.OutQuad;
-
-		public bool AnimateLayoutChanges => animateChanges && Application.isPlaying;
-		public float AnimationDuration => animationDuration;
-		public Ease AnimationEase => animationEase;
 
 		public RectOffset Padding {
 			get { padding ??= new RectOffset(); return padding; }
@@ -54,7 +45,6 @@ namespace Sperlich.UISystem {
 
 		protected DrivenRectTransformTracker tracker;
 		protected readonly List<RectTransform> children = new List<RectTransform>();
-		private readonly Dictionary<RectTransform, Tween[]> childTweens = new Dictionary<RectTransform, Tween[]>();
 
 		protected float InnerWidth => Mathf.Max(0f, SelfRect.rect.width - Padding.horizontal);
 		protected float InnerHeight => Mathf.Max(0f, SelfRect.rect.height - Padding.vertical);
@@ -66,7 +56,6 @@ namespace Sperlich.UISystem {
 
 		protected override void OnDisable() {
 			tracker.Clear();
-			StopChildTweens();
 			LayoutRebuilder.MarkLayoutForRebuild(SelfRect);
 			base.OnDisable();
 		}
@@ -80,14 +69,13 @@ namespace Sperlich.UISystem {
 #if UNITY_EDITOR
 		protected override void OnValidate() {
 			base.OnValidate();
-			animationDuration = Mathf.Max(0.01f, animationDuration);
 			SetDirty();
 		}
 
 		private bool editorRebuildQueued;
 #endif
 
-		/// <summary>Erzwingt einen Layout-Rebuild von außen (z.B. nach animierten Padding-/Gap-Änderungen).</summary>
+		/// <summary>Erzwingt einen Layout-Rebuild von außen (z.B. nach Padding-/Gap-Änderungen per Script).</summary>
 		public void RequestRebuild() => SetDirty();
 
 		protected void SetDirty() {
@@ -191,48 +179,6 @@ namespace Sperlich.UISystem {
 				? pos + size * rect.pivot.x
 				: -pos - size * (1f - rect.pivot.y);
 
-			if (AnimateLayoutChanges && rect.gameObject.activeInHierarchy) {
-				if (childTweens.TryGetValue(rect, out Tween[] slots) == false) {
-					slots = new Tween[4];
-					childTweens[rect] = slots;
-				}
-				RectTransform r = rect;
-				int a = axis;
-
-				float curSize = r.sizeDelta[a];
-				if (slots[a + 2].isAlive) {
-					slots[a + 2].Stop();
-				}
-				if (Mathf.Abs(curSize - size) > 0.25f) {
-					slots[a + 2] = Tween.Custom(curSize, size, animationDuration, v => {
-						Vector2 s = r.sizeDelta;
-						s[a] = v;
-						r.sizeDelta = s;
-					}, animationEase);
-				} else {
-					Vector2 s = r.sizeDelta;
-					s[a] = size;
-					r.sizeDelta = s;
-				}
-
-				float curPos = r.anchoredPosition[a];
-				if (slots[a].isAlive) {
-					slots[a].Stop();
-				}
-				if (Mathf.Abs(curPos - anchored) > 0.25f) {
-					slots[a] = Tween.Custom(curPos, anchored, animationDuration, v => {
-						Vector2 p = r.anchoredPosition;
-						p[a] = v;
-						r.anchoredPosition = p;
-					}, animationEase);
-				} else {
-					Vector2 p = r.anchoredPosition;
-					p[a] = anchored;
-					r.anchoredPosition = p;
-				}
-				return;
-			}
-
 			Vector2 sd = rect.sizeDelta;
 			sd[axis] = size;
 			rect.sizeDelta = sd;
@@ -240,17 +186,6 @@ namespace Sperlich.UISystem {
 			Vector2 ap = rect.anchoredPosition;
 			ap[axis] = anchored;
 			rect.anchoredPosition = ap;
-		}
-
-		private void StopChildTweens() {
-			foreach (Tween[] slots in childTweens.Values) {
-				for (int i = 0; i < slots.Length; i++) {
-					if (slots[i].isAlive) {
-						slots[i].Stop();
-					}
-				}
-			}
-			childTweens.Clear();
 		}
 
 		protected static float PreferredOf(RectTransform child, int axis) => LayoutUtility.GetPreferredSize(child, axis);

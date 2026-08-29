@@ -2,7 +2,7 @@
   "name": "com.sperlich.layout",
   "version": "1.0.0",
   "displayName": "Sperlich Layout",
-  "description": "Flexbox- and CSS-Grid-style layout containers for uGUI: FlexContainer / FlexElement and GridContainer with px / weight / ratio / auto sizing, min/max, grow/shrink and PrimeTween-driven animated layout values.",
+  "description": "Flexbox- and CSS-Grid-style layout containers for uGUI: FlexContainer / FlexElement and GridContainer with px / weight / ratio / auto sizing, min/max, grow/shrink.",
   "unity": "6000.0",
   "author": {
     "name": "Lion Sperlich",
@@ -23,7 +23,6 @@
   ],
   "dependencies": {
     "com.sperlich.editorkit": "https://github.com/MrPifo/com.sperlich.editorkit.git",
-    "com.kyrylokuzyk.primetween": "https://github.com/KyryloKuzyk/PrimeTween.git",
     "com.unity.ugui": "2.0.0"
   }
 }
