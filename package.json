@@ -1,7 +1,7 @@
 {
-  "name": "com.sperlich.uisystem.layout",
+  "name": "com.sperlich.layout",
   "version": "1.0.0",
-  "displayName": "Sperlich UISystem Layout",
+  "displayName": "Sperlich Layout",
   "description": "Flexbox- and CSS-Grid-style layout containers for uGUI: FlexContainer / FlexElement and GridContainer with px / weight / ratio / auto sizing, min/max, grow/shrink and PrimeTween-driven animated layout values.",
   "unity": "6000.0",
   "author": {
@@ -11,7 +11,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/MrPifo/com.sperlich.uisystem.layout.git"
+    "url": "https://github.com/MrPifo/com.sperlich.layout.git"
   },
   "keywords": [
     "Sperlich",

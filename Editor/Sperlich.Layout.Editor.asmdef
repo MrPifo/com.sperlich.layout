@@ -1,11 +1,14 @@
 {
-    "name": "Sperlich.UISystem.Layout",
+    "name": "Sperlich.Layout.Editor",
     "rootNamespace": "",
     "references": [
         "GUID:6055be8ebefd69e48b49212b09b47b2f",
-        "GUID:80ecb87cae9c44d19824e70ea7229748"
+        "Sperlich.Layout",
+        "Sperlich.EditorKit"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

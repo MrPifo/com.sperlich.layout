@@ -1,4 +1,4 @@
-# Sperlich UISystem Layout
+# Sperlich Layout
 
 Flexbox- and CSS-Grid-style layout for uGUI.
 
@@ -30,5 +30,5 @@ and were removed during the split).
 Unity > Window > Package Manager > + > Add package from git URL:
 
 ```
-https://github.com/MrPifo/com.sperlich.uisystem.layout.git
+https://github.com/MrPifo/com.sperlich.layout.git
 ```
