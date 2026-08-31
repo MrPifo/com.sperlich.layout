@@ -46,4 +46,18 @@ namespace Sperlich.UISystem {
 		Center = 3,
 		Stretch = 4,
 	}
+
+	/// <summary>
+	/// Steuert die automatische Größenanpassung von Kind-Elementen innerhalb eines <see cref="FlexContainer"/>.
+	/// </summary>
+	public enum FlexChildSizing {
+		/// <summary>Keine automatische Größenanpassung: Kinder behalten ihre eigene definierte Größe.</summary>
+		None = 0,
+		/// <summary>Hauptachse: Bei Row wird die gesamte Zeilenbreite (X) gleichmäßig aufgeteilt, bei Column die gesamte Spaltenhöhe (Y).</summary>
+		MainAxis = 1,
+		/// <summary>Kreuzachse: Bei Row wird die gesamte Zeilenhöhe (Y) gestreckt, bei Column die gesamte Spaltenbreite (X).</summary>
+		CrossAxis = 2,
+		/// <summary>Beide Achsen: Kinder füllen sowohl die gesamte Hauptachse als auch die Kreuzachse vollständig aus.</summary>
+		Both = 3,
+	}
 }

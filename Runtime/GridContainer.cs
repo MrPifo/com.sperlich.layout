@@ -38,8 +38,12 @@ namespace Sperlich.UISystem {
 		public GridAutoFlow AutoFlow { get => autoFlow; set { autoFlow = value; SetDirty(); } }
 		public GridStartCorner StartCorner { get => startCorner; set { startCorner = value; SetDirty(); } }
 		public GridRepeatMode ColumnRepeat { get => columnRepeat; set { columnRepeat = value; SetDirty(); } }
+		public GridTrack ColumnRepeatTemplate { get => columnRepeatTemplate; set { columnRepeatTemplate = value; SetDirty(); } }
+		public float ColumnRepeatMinSize { get => columnRepeatMinSize; set { columnRepeatMinSize = Mathf.Max(1f, value); SetDirty(); } }
 		public GridAlign JustifyItems { get => justifyItems; set { justifyItems = value; SetDirty(); } }
 		public GridAlign AlignItems { get => alignItems; set { alignItems = value; SetDirty(); } }
+		public GridTrack ImplicitRowTemplate { get => implicitRowTemplate; set { implicitRowTemplate = value; SetDirty(); } }
+		public GridTrack ImplicitColumnTemplate { get => implicitColumnTemplate; set { implicitColumnTemplate = value; SetDirty(); } }
 
 		private bool ColumnFlow => autoFlow == GridAutoFlow.Column;
 
@@ -204,12 +208,35 @@ namespace Sperlich.UISystem {
 				if (span != 1 || index < 0 || index >= sizes.Length) {
 					continue;
 				}
-				sizes[index] = Mathf.Max(sizes[index], PreferredOf(p.rect, axis));
+				sizes[index] = Mathf.Max(sizes[index], ResolveAutoContentSize(p.rect, axis));
 			}
 			return sizes;
 		}
 
+		private static float ResolveAutoContentSize(RectTransform child, int axis) {
+			FlexElement fe = FlexOf(child);
+			if (fe != null) {
+				FlexSize fs = axis == 0 ? fe.Width : fe.Height;
+				if (fs.mode == FlexMode.Pixels) {
+					return fs.value;
+				}
+				if (axis == 0 && fe.preferredWidth > 0f) {
+					return fe.preferredWidth;
+				}
+				if (axis == 1 && fe.preferredHeight > 0f) {
+					return fe.preferredHeight;
+				}
+			}
+			float pref = PreferredOf(child, axis);
+			if (pref <= 0f) {
+				FlexLayoutUtility.GetContentSize(child.gameObject, fe, axis, out _, out pref);
+			}
+			return Mathf.Max(0f, pref);
+		}
+
 		protected override void CalculateContentSize(int axis) {
+			int childCount = children.Count > 0 ? children.Count : transform.childCount;
+
 			if (ColumnFlow) {
 				BuildFixedRows();
 				if (axis == 1) {
@@ -220,9 +247,10 @@ namespace Sperlich.UISystem {
 					m_MinHeight = h;
 					m_PreferredHeight = h;
 				} else {
-					int definedCols = Mathf.Max(columns.Count, 1);
-					float w = Padding.horizontal + gap.x * Mathf.Max(0, definedCols - 1);
-					for (int i = 0; i < definedCols; i++) {
+					int numRows = Mathf.Max(1, effectiveRows.Count);
+					int neededCols = Mathf.Max(columns.Count, Mathf.CeilToInt((float)childCount / numRows));
+					float w = Padding.horizontal + gap.x * Mathf.Max(0, neededCols - 1);
+					for (int i = 0; i < neededCols; i++) {
 						w += EstimateTrack(i < columns.Count ? columns[i] : implicitColumnTemplate);
 					}
 					m_MinWidth = w;
@@ -240,9 +268,10 @@ namespace Sperlich.UISystem {
 				m_MinWidth = w;
 				m_PreferredWidth = w;
 			} else {
-				int definedRows = Mathf.Max(rows.Count, 1);
-				float h = Padding.vertical + gap.y * Mathf.Max(0, definedRows - 1);
-				for (int i = 0; i < definedRows; i++) {
+				int numCols = Mathf.Max(1, effectiveColumns.Count);
+				int neededRows = Mathf.Max(rows.Count, Mathf.CeilToInt((float)childCount / numCols));
+				float h = Padding.vertical + gap.y * Mathf.Max(0, neededRows - 1);
+				for (int i = 0; i < neededRows; i++) {
 					h += EstimateTrack(i < rows.Count ? rows[i] : implicitRowTemplate);
 				}
 				m_MinHeight = h;
@@ -340,6 +369,12 @@ namespace Sperlich.UISystem {
 		private static float ResolveItemSize(RectTransform child, FlexElement fe, int axis, float cellSize, GridAlign align) {
 			if (fe != null) {
 				FlexSize fs = axis == 0 ? fe.Width : fe.Height;
+				if (fs.mode == FlexMode.Pixels) {
+					return Mathf.Min(fs.value, cellSize);
+				}
+				if (fs.mode == FlexMode.Percent) {
+					return Mathf.Min(cellSize * fs.value * 0.01f, cellSize);
+				}
 				if (fs.mode != FlexMode.Ignore && fs.mode != FlexMode.Flexible) {
 					float resolved = axis == 0 ? fe.preferredWidth : fe.preferredHeight;
 					if (resolved >= 0f) {
@@ -350,7 +385,11 @@ namespace Sperlich.UISystem {
 			if (align == GridAlign.Stretch) {
 				return cellSize;
 			}
-			return Mathf.Min(cellSize, Mathf.Max(0f, PreferredOf(child, axis)));
+			float pref = PreferredOf(child, axis);
+			if (pref <= 0f) {
+				FlexLayoutUtility.GetContentSize(child.gameObject, fe, axis, out _, out pref);
+			}
+			return Mathf.Min(cellSize, Mathf.Max(0f, pref));
 		}
 	}
 }

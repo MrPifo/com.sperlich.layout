@@ -82,16 +82,15 @@ namespace Sperlich.UISystem {
 			if (IsActive() == false) {
 				return;
 			}
+			LayoutRebuilder.MarkLayoutForRebuild(SelfRect);
 #if UNITY_EDITOR
 			if (Application.isPlaying == false) {
 				if (editorRebuildQueued == false) {
 					editorRebuildQueued = true;
 					UnityEditor.EditorApplication.delayCall += EditorForceRebuild;
 				}
-				return;
 			}
 #endif
-			LayoutRebuilder.MarkLayoutForRebuild(SelfRect);
 		}
 
 #if UNITY_EDITOR
@@ -188,6 +187,16 @@ namespace Sperlich.UISystem {
 			rect.anchoredPosition = ap;
 		}
 
-		protected static float PreferredOf(RectTransform child, int axis) => LayoutUtility.GetPreferredSize(child, axis);
+		protected static float PreferredOf(RectTransform child, int axis) {
+			float pref = LayoutUtility.GetPreferredSize(child, axis);
+			if (pref > 0f) {
+				return pref;
+			}
+			float sd = axis == 0 ? child.sizeDelta.x : child.sizeDelta.y;
+			if (sd > 0f) {
+				return sd;
+			}
+			return Mathf.Max(0f, axis == 0 ? child.rect.width : child.rect.height);
+		}
 	}
 }

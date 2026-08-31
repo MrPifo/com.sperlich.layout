@@ -70,7 +70,10 @@ namespace Sperlich.UISystem {
 			LayoutRebuilder.MarkLayoutForRebuild(SelfRect.parent as RectTransform ?? SelfRect);
 		}
 
-		private void OnTransformParentChanged() => MarkDirty();
+		private void OnTransformParentChanged() {
+			tracker.Clear();
+			MarkDirty();
+		}
 		private void OnDidApplyAnimationProperties() => MarkDirty();
 
 		private void OnRectTransformDimensionsChange() {
@@ -87,6 +90,9 @@ namespace Sperlich.UISystem {
 		}
 #endif
 
+		/// <summary>Erzwingt einen Layout-Rebuild des übergeordneten Containers oder des eigenen RectTransforms.</summary>
+		public void RequestRebuild() => MarkDirty();
+
 #if UNITY_EDITOR
 		private bool editorRebuildQueued;
 #endif
@@ -97,6 +103,7 @@ namespace Sperlich.UISystem {
 			}
 
 			RectTransform target = SelfRect.parent as RectTransform ?? SelfRect;
+			LayoutRebuilder.MarkLayoutForRebuild(target);
 
 #if UNITY_EDITOR
 			if (Application.isPlaying == false) {
@@ -104,10 +111,8 @@ namespace Sperlich.UISystem {
 					editorRebuildQueued = true;
 					UnityEditor.EditorApplication.delayCall += () => ForceRebuildIfAlive(target);
 				}
-				return;
 			}
 #endif
-			LayoutRebuilder.MarkLayoutForRebuild(target);
 		}
 
 #if UNITY_EDITOR
@@ -202,6 +207,7 @@ namespace Sperlich.UISystem {
 
 		private void ApplyStandalone(int axis) {
 			if (StandaloneModeActive == false) {
+				tracker.Clear();
 				return;
 			}
 
@@ -213,9 +219,11 @@ namespace Sperlich.UISystem {
 
 			ResolveAxis(axis, size, out _, out float preferred, out _);
 			if (preferred < 0f) {
+				tracker.Clear();
 				return;
 			}
 
+			tracker.Clear();
 			tracker.Add(this, SelfRect, axis == 0 ? DrivenTransformProperties.SizeDeltaX : DrivenTransformProperties.SizeDeltaY);
 			SelfRect.SetSizeWithCurrentAnchors(axis == 0 ? UnityEngine.RectTransform.Axis.Horizontal : UnityEngine.RectTransform.Axis.Vertical, preferred);
 		}

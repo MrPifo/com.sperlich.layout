@@ -14,7 +14,16 @@ namespace Sperlich.UISystem {
 			if (parent == null) {
 				return false;
 			}
-			return parent.TryGetComponent(out ILayoutGroup group) && (group as Behaviour).isActiveAndEnabled;
+			if (parent.TryGetComponent(out LayoutContainerBase lcb) && lcb.isActiveAndEnabled) {
+				return true;
+			}
+			if (parent.TryGetComponent(out LayoutGroup lg) && lg.isActiveAndEnabled) {
+				return true;
+			}
+			if (parent.TryGetComponent(out Behaviour b) && b is ILayoutGroup && b.isActiveAndEnabled) {
+				return true;
+			}
+			return false;
 		}
 
 		public static float GetBasis(RectTransform rect, int axis, PercentBasis basis) {
@@ -24,7 +33,17 @@ namespace Sperlich.UISystem {
 			}
 
 			float size = axis == 0 ? parent.rect.width : parent.rect.height;
-			if (basis == PercentBasis.FullParentSize || parent.TryGetComponent(out LayoutGroup group) == false || group.isActiveAndEnabled == false) {
+			if (basis == PercentBasis.FullParentSize) {
+				return Mathf.Max(0f, size);
+			}
+
+			if (parent.TryGetComponent(out LayoutContainerBase container) && container.isActiveAndEnabled) {
+				RectOffset pad = container.Padding;
+				size -= axis == 0 ? pad.horizontal : pad.vertical;
+				return Mathf.Max(0f, size);
+			}
+
+			if (parent.TryGetComponent(out LayoutGroup group) == false || group.isActiveAndEnabled == false) {
 				return Mathf.Max(0f, size);
 			}
 
@@ -59,10 +78,10 @@ namespace Sperlich.UISystem {
 			min = 0f;
 			preferred = 0f;
 
-			target.GetComponents(elementBuffer);
+			target.GetComponentsInChildren(elementBuffer);
 			for (int i = 0; i < elementBuffer.Count; i++) {
 				ILayoutElement element = elementBuffer[i];
-				if (ReferenceEquals(element, exclude) || (element as Behaviour).isActiveAndEnabled == false) {
+				if (ReferenceEquals(element, exclude) || (element is Behaviour b && b.isActiveAndEnabled == false)) {
 					continue;
 				}
 

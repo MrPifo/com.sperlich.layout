@@ -6,10 +6,14 @@ using UnityEngine.UIElements;
 
 namespace Sperlich.UISystem.Editor {
 
+	/// <summary>
+	/// Inspector für <see cref="GridContainer"/> nach den gemeinsamen SText/Sperlich-EditorKit-Standards.
+	/// </summary>
 	[CustomEditor(typeof(GridContainer))]
 	[CanEditMultipleObjects]
-	public class GridContainerEditor : UnityEditor.Editor {
+	public sealed class GridContainerEditor : UnityEditor.Editor {
 
+		private static readonly Color Accent = SperlichEditorTheme.ButtonAccent;
 		private static readonly Color[] TrackColors = {
 			new Color(0.35f, 0.70f, 0.95f),
 			new Color(0.95f, 0.55f, 0.30f),
@@ -17,8 +21,17 @@ namespace Sperlich.UISystem.Editor {
 			new Color(0.80f, 0.50f, 0.90f),
 		};
 
+		private readonly SperlichFieldColumn col = new(130f);
+
 		public override VisualElement CreateInspectorGUI() {
-			var root = new VisualElement { style = { paddingBottom = 4 } };
+			var root = new VisualElement {
+				style = {
+					paddingTop = 2,
+					paddingBottom = 4,
+					marginLeft = -15,
+					marginRight = -4
+				}
+			};
 
 			SerializedProperty columns = serializedObject.FindProperty("columns");
 			SerializedProperty rows = serializedObject.FindProperty("rows");
@@ -34,52 +47,38 @@ namespace Sperlich.UISystem.Editor {
 			SerializedProperty gap = serializedObject.FindProperty("gap");
 			SerializedProperty padding = serializedObject.FindProperty("padding");
 
-			var header = new VisualElement {
-				style = {
-					flexDirection = UnityEngine.UIElements.FlexDirection.Row, alignItems = Align.Center,
-					backgroundColor = SperlichEditorTheme.BgDark,
-					paddingTop = 6, paddingBottom = 6, paddingLeft = 8, paddingRight = 8, marginBottom = 6
-				}
-			};
-			header.Add(new Label("Grid container") { style = { fontSize = 13, unityFontStyleAndWeight = FontStyle.Bold, color = SperlichEditorTheme.TextPrimary, flexGrow = 1 } });
-			root.Add(header);
-
+			// ---- Tracks Preview -------------------------------------------------------------------
 			var preview = BuildTrackPreview(columns, columnRepeat);
 			root.Add(preview.element);
-			root.Add(SperlichEditorWidgets.Spacer(6));
+			root.Add(SperlichEditorWidgets.Spacer(4));
 
-			var tracksBox = SperlichEditorWidgets.CreateBox(4, SperlichEditorTheme.BorderSubtle);
-			var (tracksHeader, tracksBody, _) = SperlichEditorWidgets.CreateChevronSection("Tracks", true, SperlichEditorTheme.BgDark);
-			tracksBody.style.paddingLeft = 6;
-			tracksBody.style.paddingRight = 6;
+			// ---- Flow & Tracks --------------------------------------------------------------------
+			var tracks = Section(root, "FLOW & TRACKS", true);
+			tracks.Add(col.Row("Auto Flow", SperlichEditorWidgets.CreateEnumDropdown(autoFlow, Accent)));
+			tracks.Add(col.Row("Start Corner", SperlichEditorWidgets.CreateEnumDropdown(startCorner, Accent)));
+			tracks.Add(col.Row("Column Repeat", SperlichEditorWidgets.CreateEnumDropdown(columnRepeat, Accent)));
 
-			tracksBody.Add(SperlichEditorWidgets.CreateAlignedRow("Auto flow", SperlichEditorWidgets.CreateEnumDropdown(autoFlow)));
-			tracksBody.Add(SperlichEditorWidgets.CreateAlignedRow("Start corner", SperlichEditorWidgets.CreateEnumDropdown(startCorner)));
-
-			var repeatRow = SperlichEditorWidgets.CreateAlignedRow("Column repeat", SperlichEditorWidgets.CreateEnumDropdown(columnRepeat));
-			tracksBody.Add(repeatRow);
 			var repeatFields = new VisualElement();
-			repeatFields.Add(new PropertyField(columnRepeatTemplate, "Repeat template"));
-			repeatFields.Add(new PropertyField(columnRepeatMinSize, "Repeat min size"));
-			tracksBody.Add(repeatFields);
+			repeatFields.Add(col.Property(columnRepeatTemplate, "Repeat Template"));
+			repeatFields.Add(col.Row("Repeat Min Size", LayoutEditorStyle.CreateValueRow(SperlichEditorWidgets.CreateDragNumberField(columnRepeatMinSize), "px")));
+			tracks.Add(repeatFields);
 
-			var columnsField = new PropertyField(columns, "Columns");
-			var rowsField = new PropertyField(rows, "Rows");
-			var implicitRowField = new PropertyField(implicitRowTemplate, "Implicit row");
-			var implicitColumnField = new PropertyField(implicitColumnTemplate, "Implicit column");
-			tracksBody.Add(columnsField);
-			tracksBody.Add(rowsField);
-			tracksBody.Add(implicitRowField);
-			tracksBody.Add(implicitColumnField);
+			var columnsField = col.Property(columns, "Columns");
+			var rowsField = col.Property(rows, "Rows");
+			var implicitRowField = col.Property(implicitRowTemplate, "Implicit Row");
+			var implicitColumnField = col.Property(implicitColumnTemplate, "Implicit Column");
+			tracks.Add(columnsField);
+			tracks.Add(rowsField);
+			tracks.Add(implicitRowField);
+			tracks.Add(implicitColumnField);
 
-			var columnFlowHint = new HelpBox("Column-Flow: die Anzahl der Rows bestimmt, wie viele Items pro Spalte kommen — mindestens eine Row definieren. 'Column repeat' wird dabei ignoriert.", HelpBoxMessageType.Info);
-			tracksBody.Add(columnFlowHint);
+			var columnFlowHint = new HelpBox("Column-Flow: Die Anzahl der Rows bestimmt, wie viele Items pro Spalte kommen — mindestens eine Row definieren.", HelpBoxMessageType.Info);
+			tracks.Add(columnFlowHint);
 
 			void RefreshTracks() {
 				bool columnFlow = autoFlow.enumValueIndex == (int)GridAutoFlow.Column;
 				bool repeatOn = columnRepeat.enumValueIndex != (int)GridRepeatMode.None && columnFlow == false;
 
-				repeatRow.style.display = columnFlow ? DisplayStyle.None : DisplayStyle.Flex;
 				repeatFields.style.display = repeatOn ? DisplayStyle.Flex : DisplayStyle.None;
 				columnsField.style.display = repeatOn ? DisplayStyle.None : DisplayStyle.Flex;
 
@@ -94,24 +93,36 @@ namespace Sperlich.UISystem.Editor {
 			root.TrackPropertyValue(columnRepeat, _ => { RefreshTracks(); preview.refresh(); });
 			root.TrackPropertyValue(columns, _ => preview.refresh());
 
-			tracksBox.Add(tracksHeader);
-			tracksBox.Add(tracksBody);
-			root.Add(tracksBox);
-			root.Add(SperlichEditorWidgets.Spacer(6));
+			// ---- Alignment & Spacing --------------------------------------------------------------
+			var align = Section(root, "ALIGNMENT & SPACING", true);
+			align.Add(col.Row("Justify Items", SperlichEditorWidgets.CreateEnumDropdown(justifyItems, Accent)));
+			align.Add(col.Row("Align Items", SperlichEditorWidgets.CreateEnumDropdown(alignItems, Accent)));
+			align.Add(SperlichEditorWidgets.Spacer(2));
+			align.Add(LayoutEditorStyle.CreateGapField(gap));
+			align.Add(SperlichEditorWidgets.Spacer(2));
+			align.Add(LayoutEditorStyle.CreatePaddingField(padding));
 
-			var alignBox = SperlichEditorWidgets.CreateBox(4, SperlichEditorTheme.BorderSubtle);
-			var (alignHeader, alignBody, _) = SperlichEditorWidgets.CreateChevronSection("Alignment & spacing", true, SperlichEditorTheme.BgDark);
-			alignBody.style.paddingLeft = 6;
-			alignBody.style.paddingRight = 6;
-			alignBody.Add(SperlichEditorWidgets.CreateAlignedRow("Justify items", SperlichEditorWidgets.CreateEnumDropdown(justifyItems)));
-			alignBody.Add(SperlichEditorWidgets.CreateAlignedRow("Align items", SperlichEditorWidgets.CreateEnumDropdown(alignItems)));
-			alignBody.Add(new PropertyField(gap));
-			alignBody.Add(new PropertyField(padding));
-			alignBox.Add(alignHeader);
-			alignBox.Add(alignBody);
-			root.Add(alignBox);
+			root.TrackSerializedObjectValue(serializedObject, _ => {
+				foreach (UnityEngine.Object t in targets) {
+					if (t is GridContainer gc) gc.RequestRebuild();
+				}
+			});
 
+			SperlichInspectorScroll.Preserve(root, target);
 			return root;
+		}
+
+		private static VisualElement Section(VisualElement parent, string title, bool expanded) {
+			var (header, body, _) = SperlichEditorWidgets.CreateChevronSection(title, expanded, SperlichEditorTheme.BgStep, null, nameof(GridContainerEditor));
+			body.style.paddingLeft = 6;
+			body.style.paddingRight = 6;
+			body.style.paddingTop = 4;
+			body.style.paddingBottom = 6;
+			var wrap = new VisualElement { style = { marginBottom = 4 } };
+			wrap.Add(header);
+			wrap.Add(body);
+			parent.Add(wrap);
+			return body;
 		}
 
 		private (VisualElement element, System.Action refresh) BuildTrackPreview(SerializedProperty columns, SerializedProperty columnRepeat) {
@@ -119,7 +130,7 @@ namespace Sperlich.UISystem.Editor {
 				style = {
 					flexDirection = UnityEngine.UIElements.FlexDirection.Row, height = 22,
 					borderTopLeftRadius = 3, borderTopRightRadius = 3, borderBottomLeftRadius = 3, borderBottomRightRadius = 3,
-					overflow = Overflow.Hidden, marginLeft = 2, marginRight = 2
+					overflow = Overflow.Hidden, marginLeft = 4, marginRight = 4
 				}
 			};
 
